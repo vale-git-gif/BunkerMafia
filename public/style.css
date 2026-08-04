@@ -1,0 +1,200 @@
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+  background: #05070a;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  color: #d8e0e6;
+  user-select: none;
+}
+#lobby-code-display, #chat-log, #ghost-chat-log { user-select: text; }
+#lobby-code-display { cursor: text; letter-spacing: 2px; }
+#btn-copy-code { margin-bottom: 14px; }
+
+#scene-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+#vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.85) 100%);
+}
+
+/* ---------------- Overlay screens (menu, waiting, endgame) ---------------- */
+.overlay-screen {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 5, 8, 0.75);
+  backdrop-filter: blur(3px);
+}
+.hidden { display: none !important; }
+
+.panel {
+  background: #12181e;
+  border: 1px solid #2a343d;
+  border-radius: 10px;
+  padding: 28px 32px;
+  min-width: 340px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 0 40px rgba(0,0,0,0.6);
+}
+
+.menu-panel h1 {
+  text-align: center; letter-spacing: 4px; font-weight: 300;
+  color: #e8c94a;
+}
+.menu-panel h1 span { color: #c0392b; font-weight: 700; }
+
+.panel label { display: block; margin: 10px 0 4px; font-size: 13px; color: #9aa7b0; }
+.panel input, .panel select {
+  width: 100%; padding: 9px 10px; border-radius: 6px; border: 1px solid #364049;
+  background: #0c1116; color: #e6edf2; font-size: 14px;
+}
+.panel button {
+  margin-top: 14px; width: 100%; padding: 11px; border: none; border-radius: 6px;
+  background: linear-gradient(180deg, #e8c94a, #c9a52e); color: #16130a; font-weight: 700;
+  cursor: pointer; letter-spacing: 1px; font-size: 14px;
+}
+.panel button:hover { filter: brightness(1.08); }
+.panel button.btn-back { background: #2a343d; color: #cfd8de; }
+.menu-actions button { margin-top: 10px; }
+
+.error-text { color: #e05c5c; text-align: center; min-height: 18px; font-size: 13px; }
+.hint { color: #7f8b93; font-size: 12px; }
+
+.lobby-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; max-height: 260px; overflow-y: auto; }
+.lobby-list .row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #191f26; border: 1px solid #2a343d; border-radius: 6px; padding: 8px 12px;
+}
+.lobby-list .row button { width: auto; margin: 0; padding: 6px 10px; font-size: 12px; }
+.lobby-list .row.dead { opacity: 0.45; text-decoration: line-through; }
+.lobby-list .row.me { border-color: #e8c94a; }
+
+/* ---------------- HUD ---------------- */
+#game-hud { position: fixed; top: 14px; left: 0; right: 0; z-index: 20; display: flex; justify-content: center; pointer-events: none; }
+#phase-banner {
+  background: rgba(10,14,18,0.85); border: 1px solid #364049; border-radius: 20px;
+  padding: 8px 22px; display: flex; gap: 14px; align-items: center; font-size: 13px; letter-spacing: 2px;
+}
+#phase-name { color: #e8c94a; font-weight: 700; }
+#phase-timer { color: #9aa7b0; font-variant-numeric: tabular-nums; }
+#role-badge {
+  position: fixed; top: 14px; right: 18px; z-index: 20;
+  background: rgba(10,14,18,0.85); border: 1px solid #c0392b; border-radius: 8px;
+  padding: 6px 14px; font-size: 12px; color: #e8c94a; letter-spacing: 1px;
+}
+
+/* ---------------- Tablet (mouse-controlled slide-up UI) ---------------- */
+#tablet {
+  position: fixed; left: 50%; bottom: 0; z-index: 30;
+  width: min(760px, 94vw); height: 62vh;
+  transform: translate(-50%, 100%); /* nascosto di default, animato via JS con lerp */
+  background: #10151a; border: 1px solid #2d3841; border-top-width: 3px; border-top-color: #e8c94a;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.55);
+  display: flex; flex-direction: column;
+}
+#tablet-handle {
+  width: 60px; height: 5px; border-radius: 3px; background: #3a4550;
+  margin: 10px auto 4px;
+}
+#tablet-content { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 6px 20px 18px; overflow: hidden; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.tab-btn {
+  flex: 1; padding: 9px; border-radius: 8px; border: 1px solid #2d3841; background: #171e24;
+  color: #9aa7b0; cursor: pointer; font-size: 13px;
+}
+.tab-btn.active { background: #e8c94a; color: #16130a; font-weight: 700; border-color: #e8c94a; }
+
+.tab-panel { display: none; flex: 1; min-height: 0; overflow-y: auto; }
+.tab-panel.active { display: flex; flex-direction: column; min-height: 0; }
+
+.item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 10px 0; }
+.item-card {
+  background: #191f26; border: 1px solid #2a343d; border-radius: 8px; padding: 14px 10px;
+  text-align: center; cursor: pointer; font-size: 13px;
+}
+.item-card:hover { border-color: #e8c94a; }
+.item-card.selected { border-color: #e8c94a; background: #221d10; }
+.item-card .icon-placeholder {
+  width: 48px; height: 48px; margin: 0 auto 8px; border-radius: 8px;
+  background: repeating-linear-gradient(45deg, #2a343d, #2a343d 6px, #1a2127 6px, #1a2127 12px);
+}
+
+#chat-log, #ghost-chat-log { flex: 1; min-height: 0; overflow-y: auto; background: #0c1116; border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 13px; }
+#chat-log div, #ghost-chat-log div { margin-bottom: 6px; }
+#chat-log .from, #ghost-chat-log .from { color: #e8c94a; font-weight: 600; }
+.chat-input-row { display: flex; gap: 8px; }
+.chat-input-row input { flex: 1; }
+.chat-input-row button { width: auto; margin: 0; padding: 10px 16px; }
+.chat-tag { font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-right: 6px; letter-spacing: 0.5px; }
+.chat-tag.mafia { background: #4a1414; color: #ff8a8a; }
+.chat-tag.living { background: #17242e; color: #8ab8d8; }
+.chat-tag.ghost { background: #2a1f38; color: #c9a4ff; }
+
+#night-kill-controls { margin: 10px 0; }
+#night-kill-controls button { width: auto; padding: 10px 18px; }
+#mafia-status { margin-top: 10px; }
+#mafia-status .row.confirmed { border-color: #4caf82; }
+
+/* ---------------- Ghost screen ---------------- */
+#ghost-screen { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(4,2,2,0.85); }
+#ghost-screen .ghost-panel {
+  width: min(1000px, 94vw); max-width: 94vw;
+  height: 86vh; max-height: 86vh;
+  display: flex; flex-direction: column;
+}
+#ghost-screen h2 { color: #c0392b; flex-shrink: 0; }
+
+/* Il bug dello "schiacciamento" della chat era un classico problema
+   flessbox: un figlio flex:1 dentro un contenitore a colonna, per default,
+   non scende mai sotto min-height:auto (cioè sotto la sua altezza di
+   contenuto), quindi con molti giocatori nel roster la chat veniva
+   compressa/spinta fuori invece di ridimensionarsi. min-height:0 sblocca
+   il corretto ridimensionamento. */
+.ghost-body {
+  flex: 1; min-height: 0; display: flex; gap: 18px; overflow: hidden;
+}
+.ghost-roster-col {
+  width: 300px; flex-shrink: 0; overflow-y: auto; min-height: 0;
+}
+.ghost-chat-col {
+  flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;
+}
+.ghost-chat-col #ghost-chat-log { flex: 1; min-height: 0; font-size: 14px; }
+.ghost-chat-col .chat-input-row { flex-shrink: 0; }
+
+body.touch-mode .ghost-body { flex-direction: column; }
+body.touch-mode .ghost-roster-col { width: 100%; max-height: 26vh; }
+body.touch-mode #ghost-screen .ghost-panel { width: 100%; height: 92vh; max-height: 92vh; }
+
+@media (max-width: 600px) {
+  #tablet { height: 72vh; }
+  .panel { padding: 18px; }
+}
+
+/* ---------------- Modalità Touch: niente 3D, tablet a schermo intero ---------------- */
+body.touch-mode #scene-canvas,
+body.touch-mode #vignette,
+body.touch-mode #tablet-handle {
+  display: none !important;
+}
+body.touch-mode #tablet {
+  position: fixed; inset: 0; width: 100%; height: 100%;
+  transform: none !important;
+  border-radius: 0; border-top-width: 1px;
+}
+body.touch-mode #tablet-content { padding: 54px 14px 18px; }
+body.touch-mode .tab-btn { padding: 12px 6px; font-size: 14px; }
+body.touch-mode #game-hud { top: 6px; z-index: 40; } /* sopra il tablet (z-index 30): altrimenti il timer resta nascosto sul telefono */
+body.touch-mode .item-card { padding: 18px 10px; font-size: 14px; }
+body.touch-mode input,
+body.touch-mode select { font-size: 16px; } /* previene lo zoom automatico di iOS Safari al focus su un campo */
+body.touch-mode .lobby-list .row button { padding: 10px 14px; font-size: 13px; min-height: 38px; }
+body.touch-mode .chat-input-row button { padding: 12px 18px; }
+body.touch-mode #btn-confirm-kill,
+body.touch-mode #btn-vote-skip,
+body.touch-mode #btn-close-spy,
+body.touch-mode #btn-start-game,
+body.touch-mode #btn-copy-code { min-height: 44px; }

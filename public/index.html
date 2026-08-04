@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Bunker Mafia</title>
+<link rel="stylesheet" href="style.css" />
+<script src="/socket.io/socket.io.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+  <!-- CANVAS 3D DI SFONDO (bunker + giocatori) -->
+  <canvas id="scene-canvas"></canvas>
+  <div id="vignette"></div>
+
+  <!-- ============== SCELTA MODALITÀ (mostrata per prima, prima del menu) ============== -->
+  <div id="mode-select-screen" class="overlay-screen">
+    <div class="panel menu-panel">
+      <h1>BUNKER <span>MAFIA</span></h1>
+      <p class="hint" style="text-align:center; margin-bottom:16px;">Come giochi?</p>
+      <button id="btn-mode-desktop">Uso il mouse (UI Completa 3D)</button>
+      <button id="btn-mode-touch">Uso il touchscreen (UI Minimalista)</button>
+    </div>
+  </div>
+
+  <!-- ============== SCHERMATA MENU (lobby list / create / join) ============== -->
+  <div id="menu-screen" class="overlay-screen hidden">
+    <div class="panel menu-panel">
+      <h1>BUNKER <span>MAFIA</span></h1>
+
+      <div id="menu-home">
+        <label>Il tuo nome</label>
+        <input id="input-name" maxlength="20" placeholder="Es. Delta-7" />
+
+        <div class="menu-actions">
+          <button id="btn-show-create">Crea Lobby</button>
+          <button id="btn-show-join">Entra con Codice</button>
+          <button id="btn-show-list">Lobby Pubbliche</button>
+        </div>
+      </div>
+
+      <div id="menu-create" class="hidden">
+        <h3>Nuova Lobby</h3>
+        <label><input type="checkbox" id="chk-private" /> Lobby privata (solo codice)</label>
+        <label>Numero Assassini
+          <select id="sel-assassins"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+        </label>
+        <label><input type="checkbox" id="chk-investigator" checked /> Includi Investigatore</label>
+        <label>Giocatori Max
+          <input type="number" id="input-maxplayers" min="4" max="12" value="8" />
+        </label>
+        <button id="btn-create-confirm">Crea</button>
+        <button class="btn-back" data-back>Indietro</button>
+      </div>
+
+      <div id="menu-join" class="hidden">
+        <h3>Entra in una Lobby</h3>
+        <input id="input-code" maxlength="6" placeholder="CODICE (es. AB12CD)" style="text-transform:uppercase" />
+        <button id="btn-join-confirm">Entra</button>
+        <button class="btn-back" data-back>Indietro</button>
+      </div>
+
+      <div id="menu-list" class="hidden">
+        <h3>Lobby Pubbliche</h3>
+        <div id="public-lobby-list" class="lobby-list"></div>
+        <button class="btn-back" data-back>Indietro</button>
+      </div>
+
+      <p id="menu-error" class="error-text"></p>
+    </div>
+  </div>
+
+  <!-- ============== SALA D'ATTESA (lobby) ============== -->
+  <div id="waiting-screen" class="overlay-screen hidden">
+    <div class="panel">
+      <h2>Lobby <span id="lobby-code-display"></span></h2>
+      <button id="btn-copy-code" style="width:auto;">Copia codice</button>
+      <div id="waiting-player-list" class="lobby-list"></div>
+      <div id="host-controls" class="hidden">
+        <button id="btn-start-game">Avvia Partita</button>
+      </div>
+      <p class="hint">Condividi il codice per invitare altri giocatori.</p>
+    </div>
+  </div>
+
+  <!-- ============== HUD DI GIOCO (sempre visibile durante la partita) ============== -->
+  <div id="game-hud" class="hidden">
+    <div id="phase-banner">
+      <span id="phase-name">NOTTE</span>
+      <span id="phase-timer">--</span>
+    </div>
+    <div id="role-badge"></div>
+  </div>
+
+  <!-- ============== TABLET (si alza dal basso, controllato dal mouse) ============== -->
+  <div id="tablet">
+    <div id="tablet-handle"></div>
+    <div id="tablet-content">
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-main">Bunker</button>
+        <button class="tab-btn" data-tab="tab-chat">Chat</button>
+        <button class="tab-btn" data-tab="tab-vote">Voto</button>
+        <button class="tab-btn hidden" id="tab-btn-investigator" data-tab="tab-investigator">Spia</button>
+      </div>
+
+      <div id="tab-main" class="tab-panel active">
+        <h3 id="main-panel-title">Scegli un oggetto</h3>
+        <div id="item-choices" class="item-grid"></div>
+        <div id="night-kill-controls" class="hidden">
+          <button id="btn-confirm-kill" disabled>Conferma Bersaglio</button>
+          <div id="mafia-status" class="lobby-list"></div>
+          <p class="hint">Usa la tab "Chat" per coordinarti in privato con gli altri assassini.</p>
+        </div>
+        <p id="main-panel-note" class="hint"></p>
+      </div>
+
+      <div id="tab-chat" class="tab-panel">
+        <div id="chat-log"></div>
+        <div class="chat-input-row">
+          <input id="chat-input" maxlength="300" placeholder="Scrivi un messaggio..." />
+          <button id="chat-send">Invia</button>
+        </div>
+      </div>
+
+      <div id="tab-vote" class="tab-panel">
+        <h3>Vota chi espellere</h3>
+        <div id="vote-list" class="lobby-list"></div>
+        <button id="btn-vote-skip">Salta il Voto</button>
+        <p id="vote-progress" class="hint"></p>
+      </div>
+
+      <div id="tab-investigator" class="tab-panel">
+        <h3>Spia un giocatore</h3>
+        <p id="investigator-locked-note" class="hint hidden">Hai già chiuso il tuo potere oggi: potrai spiare di nuovo dal prossimo giorno.</p>
+        <div id="investigator-target-list" class="lobby-list"></div>
+        <div id="investigator-result" class="hidden">
+          <h4 id="investigator-target-name"></h4>
+          <div id="investigator-items" class="item-grid"></div>
+          <button id="btn-close-spy">Chiudi (dimenticherai i dettagli)</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============== SCHERMATA GHOST CHAT ============== -->
+  <div id="ghost-screen" class="hidden">
+    <div class="panel ghost-panel">
+      <h2>Sei morto — Ghost Chat</h2>
+      <div class="ghost-body">
+        <div class="ghost-roster-col">
+          <div id="ghost-roster" class="lobby-list"></div>
+        </div>
+        <div class="ghost-chat-col">
+          <div id="ghost-chat-log"></div>
+          <div class="chat-input-row">
+            <input id="ghost-chat-input" maxlength="300" placeholder="Solo gli altri fantasmi ti vedono..." />
+            <button id="ghost-chat-send">Invia</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============== SCHERMATA FINE PARTITA ============== -->
+  <div id="endgame-screen" class="overlay-screen hidden">
+    <div class="panel">
+      <h2 id="endgame-title"></h2>
+      <div id="endgame-roster" class="lobby-list"></div>
+      <button id="btn-back-to-menu">Torna al Menu</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
