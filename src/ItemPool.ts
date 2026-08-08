@@ -18,17 +18,6 @@ export const ITEM_POOL: ItemDef[] = [
   { id: "backpack", name: "Zaino da Sopravvivenza", icon: "item_backpack.png" },
   { id: "compass", name: "Bussola", icon: "item_compass.png" },
   { id: "thermos", name: "Thermos Termico", icon: "item_thermos.png" },
-  { id: "matches", name: "Scatola di Fiammiferi", icon: "item_matches.png" },
-  { id: "sleeping_bag", name: "Sacco a Pelo", icon: "item_sleeping_bag.png" },
-  { id: "sewing_kit", name: "Kit da Cucito", icon: "item_sewing_kit.png" },
-  { id: "book", name: "Libro Consumato", icon: "item_book.png" },
-  { id: "playing_cards", name: "Mazzo di Carte", icon: "item_cards.png" },
-  { id: "gloves", name: "Guanti da Lavoro", icon: "item_gloves.png" },
-  { id: "water_filter", name: "Filtro per l'Acqua", icon: "item_water_filter.png" },
-  { id: "tent", name: "Tenda Compatta", icon: "item_tent.png" },
-  { id: "boots", name: "Stivali da Trekking", icon: "item_boots.png" },
-  { id: "toolkit", name: "Set di Attrezzi", icon: "item_toolkit.png" },
-  { id: "seeds", name: "Sacchetto di Semi", icon: "item_seeds.png" },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
